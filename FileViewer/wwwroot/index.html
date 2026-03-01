@@ -5,7 +5,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>File Viewer - Markdown / Excel / PDF</title>
-    <base href="/blazor-browser-file-viewer/" />
+    <base href="/" />
+    <script>
+        // Dynamically set base href to work on any hosting path (GitHub Pages, localhost, etc.)
+        (function () {
+            var base = document.querySelector('base');
+            var path = window.location.pathname;
+            // If serving from a subfolder (e.g. /blazor-browser-file-viewer/), use that as base
+            // If serving from root, keep "/"
+            // Find the path up to and including the last "/" before the current page
+            var idx = path.lastIndexOf('/');
+            base.href = idx >= 0 ? path.substring(0, idx + 1) : '/';
+        })();
+    </script>
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/toastui-editor.min.css" />
     <link rel="stylesheet" href="css/app.css" />

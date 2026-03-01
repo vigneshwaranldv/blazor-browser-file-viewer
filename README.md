@@ -36,11 +36,34 @@ FileViewer/
     └── data/                      # manifest.json + sample files
 ```
 
-## Prerequisites
+## Quick Start (Pre-built Release — No .NET SDK Required)
+
+1. Go to [Releases](https://github.com/vigneshwaranldv/blazor-browser-file-viewer/releases)
+2. Download the latest `file-viewer-vX.X.X.zip`
+3. Extract to any folder
+4. Serve with any static file server:
+
+```bash
+# Python (built into most systems)
+python3 -m http.server 8080
+
+# Node.js
+npx serve .
+
+# Or use any other static server (Nginx, Apache, Caddy, etc.)
+```
+
+5. Open `http://localhost:8080/` in Chrome or Edge
+
+The base href is set dynamically — the same build works from any hosting path (root, subfolder, GitHub Pages, etc.).
+
+## Development (Requires .NET 10 SDK)
+
+### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
 
-## Running Locally
+### Running Locally
 
 ```bash
 # Development mode with hot reload
@@ -51,15 +74,15 @@ cd FileViewer
 dotnet watch run
 ```
 
-The app will be available at `http://localhost:5158/blazor-browser-file-viewer/`.
+The app will be available at `http://localhost:5158/`.
 
-## Build & Publish
+### Build & Publish
 
 ```bash
 # Build only
 python run.py build
 
-# Publish for deployment
+# Publish for deployment (output in release/wwwroot/)
 python run.py publish
 
 # Clean build artifacts
@@ -68,7 +91,27 @@ python run.py clean
 
 ## Deployment
 
-The project includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys to GitHub Pages on push to `main`.
+### GitHub Pages (Automatic)
+
+The project includes two GitHub Actions workflows:
+
+- **`.github/workflows/deploy.yml`** — Automatically deploys to GitHub Pages on push to `main`
+- **`.github/workflows/release.yml`** — Creates downloadable release packages
+
+### Creating a Release
+
+**Option 1: Manual trigger**
+1. Go to Actions > "Build and Release" > Run workflow
+2. Enter a version (e.g. `v1.0.0`)
+3. Click "Run workflow"
+
+**Option 2: Push a tag**
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Both methods build the app, package it as a zip, and create a GitHub Release with the artifact attached.
 
 ### Manual Deployment
 

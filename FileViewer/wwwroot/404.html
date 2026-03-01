@@ -2,19 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0;url=/blazor-browser-file-viewer/" />
     <title>Redirecting...</title>
     <script>
-        // SPA redirect for GitHub Pages
-        var segmentCount = 1;
-        var l = window.location;
-        l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?/' +
-            l.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~') +
-            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash
-        );
+        // SPA redirect for GitHub Pages (and any subfolder hosting)
+        // Detects the base path dynamically from the current URL
+        (function () {
+            var l = window.location;
+            var pathParts = l.pathname.split('/').filter(Boolean);
+
+            // For GitHub Pages project sites, the first segment is the repo name
+            // For root hosting, there are no segments to preserve
+            // We detect this by checking if the first path segment looks like a repo name
+            // (i.e., the 404 is served from the repo's subfolder)
+            var basePath = '/';
+            if (pathParts.length > 0) {
+                // Assume first segment is the base path (repo name on GitHub Pages)
+                basePath = '/' + pathParts[0] + '/';
+            }
+
+            // Redirect to the base path with the remaining route encoded as a query parameter
+            var remainingPath = pathParts.slice(1).join('/');
+            var redirect = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                basePath +
+                (remainingPath ? '?p=/' + remainingPath : '') +
+                (l.search ? (remainingPath ? '&' : '?') + l.search.slice(1) : '') +
+                l.hash;
+
+            l.replace(redirect);
+        })();
     </script>
 </head>
 <body>

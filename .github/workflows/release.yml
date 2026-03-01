@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  # Manual trigger with version input
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0.0)'
+        required: true
+        type: string
+
+  # Auto-trigger on version tags
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish Blazor WASM
+        run: dotnet publish FileViewer/FileViewer.csproj -c Release -o release
+
+      - name: Prepare release package
+        run: |
+          cd release/wwwroot
+          zip -r ../../file-viewer-${{ steps.version.outputs.tag }}.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: File Viewer ${{ steps.version.outputs.tag }}
+          body: |
+            ## Blazor Browser File Viewer ${{ steps.version.outputs.tag }}
+
+            Pre-built release — no .NET SDK required on the client machine.
+
+            ### How to use
+
+            1. Download `file-viewer-${{ steps.version.outputs.tag }}.zip`
+            2. Extract the zip to any folder
+            3. Serve with any static file server:
+               ```bash
+               # Python
+               python3 -m http.server 8080
+
+               # Node.js
+               npx serve .
+               ```
+            4. Open `http://localhost:8080/` in Chrome or Edge
+
+            ### What's included
+            - Complete Blazor WebAssembly runtime (runs in browser via WASM)
+            - Markdown viewer/editor (Toast UI Editor + Mermaid diagrams)
+            - Excel/CSV viewer with inline CSV editing (SheetJS)
+            - PDF viewer with navigation and zoom (PDF.js)
+            - All vendor JS libraries bundled (works offline)
+          files: |
+            file-viewer-${{ steps.version.outputs.tag }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
