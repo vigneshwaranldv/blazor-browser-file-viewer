@@ -1,0 +1,11 @@
+Product,Category,Q1 Sales,Q2 Sales,Q3 Sales,Q4 Sales,Total
+Widget A,Electronics,15200,18400,22100,19800,75500
+Widget B,Electronics,8900,9200,11500,10300,39900
+Gadget X,Accessories,4500,5100,6200,5800,21600
+Gadget Y,Accessories,3200,3800,4100,3900,15000
+Service Plan,Services,12000,12000,12000,12000,48000
+Premium Plan,Services,8500,9000,9500,10000,37000
+Connector A,Parts,2100,2400,2800,2600,9900
+Connector B,Parts,1800,2000,2200,2100,8100
+Software License,Software,25000,25000,25000,25000,100000
+Support Package,Services,6000,6500,7000,7500,27000

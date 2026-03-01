@@ -1,0 +1,24 @@
+@inject JSInteropService JS
+
+<div id="pdf-container" class="renderer-container" style="@(Visible ? "" : "display:none;")">
+    <div id="pdf-toolbar" class="pdf-toolbar">
+        <button id="pdf-prev" class="btn btn-sm" @onclick="PrevPage">Previous</button>
+        <span id="pdf-page-info" class="pdf-page-info">Page 1 / 1</span>
+        <button id="pdf-next" class="btn btn-sm" @onclick="NextPage">Next</button>
+        <button id="pdf-zoom-out" class="btn btn-sm" @onclick="ZoomOut">-</button>
+        <span id="pdf-zoom-level" class="pdf-zoom-level">100%</span>
+        <button id="pdf-zoom-in" class="btn btn-sm" @onclick="ZoomIn">+</button>
+        <button id="pdf-fit-width" class="btn btn-sm" @onclick="FitWidth">Fit Width</button>
+    </div>
+    <div id="pdf-viewer" class="pdf-viewer"></div>
+</div>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+
+    private async Task PrevPage() => await JS.PdfPrevPageAsync();
+    private async Task NextPage() => await JS.PdfNextPageAsync();
+    private async Task ZoomIn() => await JS.PdfZoomInAsync();
+    private async Task ZoomOut() => await JS.PdfZoomOutAsync();
+    private async Task FitWidth() => await JS.PdfFitWidthAsync();
+}

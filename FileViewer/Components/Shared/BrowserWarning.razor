@@ -1,0 +1,17 @@
+@if (IsVisible)
+{
+    <div id="browser-warning" class="browser-warning">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>File saving requires Chrome or Edge. Markdown editing works but changes cannot be saved to disk in this browser.</span>
+        <button id="dismiss-warning" class="icon-btn" @onclick="OnDismiss">&times;</button>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnDismiss { get; set; }
+}

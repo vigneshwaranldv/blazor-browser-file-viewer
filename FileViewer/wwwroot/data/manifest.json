@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "name": "sample-project",
+      "path": "data/sample-project",
+      "children": {
+        "markdown-files": [
+          "welcome.md",
+          "getting-started.md",
+          "api-reference.md"
+        ],
+        "excel-files": [
+          "sales-data.csv",
+          "inventory.csv"
+        ],
+        "pdf-files": [
+          "sample-report.pdf"
+        ]
+      }
+    }
+  ]
+}

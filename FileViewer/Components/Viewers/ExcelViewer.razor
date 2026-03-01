@@ -1,0 +1,8 @@
+<div id="excel-container" class="renderer-container" style="@(Visible ? "" : "display:none;")">
+    <div id="excel-sheet-tabs" class="sheet-tabs"></div>
+    <div id="excel-table-wrapper" class="table-wrapper"></div>
+</div>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+}

@@ -1,0 +1,20 @@
+@if (Nodes == null || Nodes.Count == 0)
+{
+    <div class="nav-tree-empty">No files found</div>
+}
+else
+{
+    @foreach (var node in Nodes)
+    {
+        <TreeNode Node="@node"
+                  Indent="0"
+                  SelectedFilePath="@SelectedFilePath"
+                  OnFileSelected="OnFileSelected" />
+    }
+}
+
+@code {
+    [Parameter] public List<FileNode> Nodes { get; set; } = new();
+    [Parameter] public string? SelectedFilePath { get; set; }
+    [Parameter] public EventCallback<FileNode> OnFileSelected { get; set; }
+}

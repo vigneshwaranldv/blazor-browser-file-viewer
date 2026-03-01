@@ -1,0 +1,301 @@
+@inherits LayoutComponentBase
+@inject AppStateService AppState
+@inject JSInteropService JS
+@inject ManifestService ManifestSvc
+@implements IDisposable
+
+<!-- Top Bar -->
+<TopBar CurrentFilePath="@AppState.State.CurrentFilePath"
+        CurrentFileType="@AppState.State.CurrentFileType"
+        IsDirty="@AppState.State.IsDirty"
+        HasFolderAccess="@AppState.State.HasFolderAccess"
+        IsFileSystemSupported="@AppState.State.IsFileSystemSupported"
+        Theme="@AppState.State.Theme"
+        OnToggleSidebar="ToggleSidebar"
+        OnSave="SaveCurrentFile"
+        OnGrantAccess="GrantFolderAccess"
+        OnToggleTheme="ToggleTheme" />
+
+<!-- Browser Compatibility Warning -->
+<BrowserWarning IsVisible="@_showBrowserWarning" OnDismiss="DismissBrowserWarning" />
+
+<!-- Main Layout -->
+<div class="main-layout">
+    <!-- Sidebar -->
+    <Sidebar IsCollapsed="@AppState.State.IsSidebarCollapsed"
+             IsOpenFolderMode="@AppState.State.IsOpenFolderMode"
+             FileTreeNodes="@_treeNodes"
+             SelectedFilePath="@AppState.State.CurrentFilePath"
+             OnOpenFolder="OpenFolder"
+             OnResetFolder="ResetFolder"
+             OnFileSelected="HandleFileSelected" />
+
+    <!-- Resizer handle -->
+    <div id="resizer" class="resizer"></div>
+
+    <!-- Content Pane -->
+    <ContentPane CurrentFileType="@AppState.State.CurrentFileType"
+                 IsLoading="@AppState.State.IsLoading" />
+</div>
+
+<!-- Toast notification -->
+<Toast />
+
+@code {
+    private List<FileNode> _treeNodes = new();
+    private bool _showBrowserWarning;
+    private DotNetObjectReference<object>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create<object>(this);
+
+            // Initialize theme
+            await JS.InitThemeAsync();
+            var theme = await JS.GetThemeAsync();
+            AppState.SetTheme(theme);
+
+            // Check browser support
+            var isSupported = await JS.CheckFileSystemSupportAsync();
+            AppState.SetFileSystemSupported(isSupported);
+
+            if (!isSupported)
+            {
+                _showBrowserWarning = true;
+                StateHasChanged();
+            }
+
+            // Initialize resizer
+            await JS.InitResizerAsync();
+
+            // Initialize keyboard shortcuts
+            await JS.InitKeyboardShortcutsAsync(_dotNetRef);
+
+            // Try to restore persisted folder first, otherwise load manifest
+            var restored = false;
+            try
+            {
+                restored = await JS.TryRestorePersistedFolderAsync(_dotNetRef);
+            }
+            catch
+            {
+                restored = false;
+            }
+
+            if (restored)
+            {
+                AppState.SetOpenFolderMode(true);
+                AppState.SetFolderAccess(true);
+            }
+            else
+            {
+                // Load manifest tree
+                _treeNodes = await ManifestSvc.LoadManifestTreeAsync();
+                AppState.SetOpenFolderMode(false);
+                StateHasChanged();
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += HandleStateChanged;
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleSidebar()
+    {
+        AppState.SetSidebarCollapsed(!AppState.State.IsSidebarCollapsed);
+    }
+
+    private async Task ToggleTheme()
+    {
+        await JS.ToggleThemeAsync();
+        var theme = await JS.GetThemeAsync();
+        AppState.SetTheme(theme);
+    }
+
+    private async Task GrantFolderAccess()
+    {
+        if (AppState.State.HasFolderAccess) return;
+
+        try
+        {
+            var granted = await JS.RequestFolderAccessAsync();
+            AppState.SetFolderAccess(granted);
+            if (granted)
+            {
+                await JS.ShowToastAsync("Folder access granted! You can now save files.", "success");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.ShowToastAsync($"Failed to get folder access: {ex.Message}", "error");
+        }
+    }
+
+    private async Task OpenFolder()
+    {
+        if (_dotNetRef == null) return;
+
+        try
+        {
+            var opened = await JS.OpenFolderAsync(_dotNetRef);
+            if (opened)
+            {
+                AppState.SetOpenFolderMode(true);
+                AppState.SetFolderAccess(true);
+                AppState.ShowWelcome();
+                _treeNodes = new List<FileNode>();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.ShowToastAsync($"Failed to open folder: {ex.Message}", "error");
+        }
+    }
+
+    private async Task ResetFolder()
+    {
+        try
+        {
+            await JS.ResetToDefaultFolderAsync();
+            AppState.SetOpenFolderMode(false);
+            AppState.SetFolderAccess(false);
+            AppState.ShowWelcome();
+
+            _treeNodes = await ManifestSvc.LoadManifestTreeAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JS.ShowToastAsync($"Failed to reset folder: {ex.Message}", "error");
+        }
+    }
+
+    private async Task SaveCurrentFile()
+    {
+        var fileType = AppState.State.CurrentFileType;
+
+        try
+        {
+            if (fileType == "markdown")
+            {
+                await JS.SaveCurrentMarkdownAsync();
+                AppState.SetDirty(false);
+                await JS.ShowToastAsync("File saved successfully!", "success");
+            }
+            else if (fileType == "excel")
+            {
+                await JS.SaveCurrentCSVAsync();
+                AppState.SetDirty(false);
+                await JS.ShowToastAsync("File saved successfully!", "success");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.ShowToastAsync($"Failed to save: {ex.Message}", "error");
+        }
+    }
+
+    private async Task HandleFileSelected(FileNode node)
+    {
+        if (node.Type == "folder" || node.FileType == null) return;
+        await LoadFile(node.Path, node.FileType, node.Name);
+    }
+
+    private async Task LoadFile(string path, string type, string name)
+    {
+        // Destroy previous renderers
+        try { await JS.DestroyMarkdownAsync(); } catch { }
+        try { await JS.DestroyExcelAsync(); } catch { }
+        try { await JS.DestroyPdfAsync(); } catch { }
+
+        AppState.SetLoading(true);
+        AppState.SetCurrentFile(path, type, name);
+        AppState.SetDirty(false);
+
+        try
+        {
+            if (AppState.State.IsOpenFolderMode)
+            {
+                switch (type)
+                {
+                    case "markdown":
+                        // In open folder mode, JS reads file from handle
+                        await JS.RenderMarkdownAsync("", path);
+                        break;
+                    case "excel":
+                        await JS.RenderExcelFromHandleAsync(name, path);
+                        break;
+                    case "pdf":
+                        await JS.RenderPdfFromHandleAsync();
+                        break;
+                }
+            }
+            else
+            {
+                switch (type)
+                {
+                    case "markdown":
+                        // Fetch markdown content and render
+                        await JS.RenderMarkdownAsync("", path);
+                        break;
+                    case "excel":
+                        await JS.RenderExcelFromUrlAsync(path, name, path);
+                        break;
+                    case "pdf":
+                        await JS.RenderPdfFromUrlAsync(path);
+                        break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.ShowToastAsync($"Failed to load file: {ex.Message}", "error");
+        }
+        finally
+        {
+            AppState.SetLoading(false);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnSaveRequested()
+    {
+        await SaveCurrentFile();
+    }
+
+    [JSInvokable]
+    public async Task OnFileSelected(string path, string name, string fileType)
+    {
+        await LoadFile(path, fileType, name);
+    }
+
+    [JSInvokable]
+    public void OnFolderOpened()
+    {
+        AppState.SetOpenFolderMode(true);
+        AppState.SetFolderAccess(true);
+        _treeNodes = new List<FileNode>();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void DismissBrowserWarning()
+    {
+        _showBrowserWarning = false;
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= HandleStateChanged;
+        _dotNetRef?.Dispose();
+    }
+}

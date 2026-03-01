@@ -1,0 +1,17 @@
+<main id="content-pane" class="content-pane">
+    @if (CurrentFileType == null)
+    {
+        <WelcomeScreen />
+    }
+
+    <MarkdownViewer Visible="@(CurrentFileType == "markdown")" />
+    <ExcelViewer Visible="@(CurrentFileType == "excel")" />
+    <PdfViewer Visible="@(CurrentFileType == "pdf")" />
+
+    <LoadingIndicator IsVisible="@IsLoading" />
+</main>
+
+@code {
+    [Parameter] public string? CurrentFileType { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+}
