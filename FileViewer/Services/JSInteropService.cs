@@ -50,20 +50,29 @@ public class JSInteropService : IAsyncDisposable
     // ===========================
     // Open Folder
     // ===========================
-    public ValueTask<bool> OpenFolderAsync(DotNetObjectReference<object> callbackRef) =>
+    public ValueTask<bool> OpenFolderAsync<T>(DotNetObjectReference<T> callbackRef) where T : class =>
         _js.InvokeAsync<bool>("AppInterop.openFolder", callbackRef);
 
-    public ValueTask<bool> TryRestorePersistedFolderAsync(DotNetObjectReference<object> callbackRef) =>
+    public ValueTask<bool> TryRestorePersistedFolderAsync<T>(DotNetObjectReference<T> callbackRef) where T : class =>
         _js.InvokeAsync<bool>("AppInterop.tryRestorePersistedFolder", callbackRef);
 
     public ValueTask ResetToDefaultFolderAsync() =>
         _js.InvokeVoidAsync("AppInterop.resetToDefaultFolder");
+
+    public ValueTask<bool> PrepareFileHandleAsync(string filePath, string fileType) =>
+        _js.InvokeAsync<bool>("AppInterop.prepareFileHandle", filePath, fileType);
 
     // ===========================
     // Markdown Renderer
     // ===========================
     public ValueTask RenderMarkdownAsync(string content, string filePath) =>
         _js.InvokeVoidAsync("MarkdownInterop.render", content, filePath);
+
+    public ValueTask RenderMarkdownFromHandleAsync(string filePath) =>
+        _js.InvokeVoidAsync("MarkdownInterop.renderFromHandle", filePath);
+
+    public ValueTask RenderMarkdownFromUrlAsync(string url) =>
+        _js.InvokeVoidAsync("MarkdownInterop.renderFromUrl", url);
 
     public ValueTask<string> GetMarkdownContentAsync() =>
         _js.InvokeAsync<string>("MarkdownInterop.getMarkdown");
@@ -140,7 +149,7 @@ public class JSInteropService : IAsyncDisposable
     // ===========================
     // Keyboard Shortcuts
     // ===========================
-    public ValueTask InitKeyboardShortcutsAsync(DotNetObjectReference<object> callbackRef) =>
+    public ValueTask InitKeyboardShortcutsAsync<T>(DotNetObjectReference<T> callbackRef) where T : class =>
         _js.InvokeVoidAsync("AppInterop.initKeyboardShortcuts", callbackRef);
 
     // ===========================

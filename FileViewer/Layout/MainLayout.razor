@@ -44,13 +44,13 @@
 @code {
     private List<FileNode> _treeNodes = new();
     private bool _showBrowserWarning;
-    private DotNetObjectReference<object>? _dotNetRef;
+    private DotNetObjectReference<MainLayout>? _dotNetRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _dotNetRef = DotNetObjectReference.Create<object>(this);
+            _dotNetRef = DotNetObjectReference.Create(this);
 
             // Initialize theme
             await JS.InitThemeAsync();
@@ -226,11 +226,13 @@
         {
             if (AppState.State.IsOpenFolderMode)
             {
+                // Set the file handle on the appropriate renderer before rendering
+                await JS.PrepareFileHandleAsync(path, type);
+
                 switch (type)
                 {
                     case "markdown":
-                        // In open folder mode, JS reads file from handle
-                        await JS.RenderMarkdownAsync("", path);
+                        await JS.RenderMarkdownFromHandleAsync(path);
                         break;
                     case "excel":
                         await JS.RenderExcelFromHandleAsync(name, path);
@@ -245,8 +247,8 @@
                 switch (type)
                 {
                     case "markdown":
-                        // Fetch markdown content and render
-                        await JS.RenderMarkdownAsync("", path);
+                        // Fetch markdown content via URL and render
+                        await JS.RenderMarkdownFromUrlAsync(path);
                         break;
                     case "excel":
                         await JS.RenderExcelFromUrlAsync(path, name, path);

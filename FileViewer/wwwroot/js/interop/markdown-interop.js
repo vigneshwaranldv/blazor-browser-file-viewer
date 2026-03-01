@@ -483,8 +483,38 @@ window.MarkdownInterop = (() => {
         return fileHandle;
     }
 
+    /**
+     * Render from a stored file handle (Open Folder mode).
+     * Reads the file content and calls render().
+     * @param {string} filePath - path to the file
+     */
+    async function renderFromHandle(filePath) {
+        if (!fileHandle) {
+            throw new Error('No file handle set. Call setFileHandle first.');
+        }
+        const file = await fileHandle.getFile();
+        const content = await file.text();
+        render(content, filePath);
+    }
+
+    /**
+     * Render markdown by fetching content from a URL.
+     * Used in manifest/static mode.
+     * @param {string} url - the URL to fetch markdown from
+     */
+    async function renderFromUrl(url) {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+        }
+        const content = await response.text();
+        render(content, url);
+    }
+
     return {
         render,
+        renderFromHandle,
+        renderFromUrl,
         getMarkdown,
         getCurrentFilePath,
         hasDirtyChanges,

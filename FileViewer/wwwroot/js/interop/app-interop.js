@@ -266,7 +266,7 @@ window.AppInterop = (() => {
     async function openFolder(dotNetRef) {
         if (!('showDirectoryPicker' in window)) {
             showToast('Open Folder requires Chrome or Edge browser.', 'error');
-            return;
+            return false;
         }
 
         try {
@@ -302,14 +302,17 @@ window.AppInterop = (() => {
 
             showToast(`Loaded folder: ${dirHandle.name}`, 'success');
 
-            // Notify Blazor
+            // Notify Blazor (no arguments — matches C# [JSInvokable] void OnFolderOpened())
             if (dotNetRef) {
-                dotNetRef.invokeMethodAsync('OnFolderOpened', true);
+                dotNetRef.invokeMethodAsync('OnFolderOpened');
             }
+
+            return true;
         } catch (error) {
-            if (error.name === 'AbortError') return; // User cancelled
+            if (error.name === 'AbortError') return false; // User cancelled
             console.error('Open folder error:', error);
             showToast(`Failed to open folder: ${error.message}`, 'error');
+            return false;
         }
     }
 
@@ -350,14 +353,13 @@ window.AppInterop = (() => {
             if (lastFilePath && _lastScannedTree) {
                 const fileNode = findFileInTree(_lastScannedTree, lastFilePath);
                 if (fileNode && fileNode.handle) {
-                    // Notify Blazor about the file to load
+                    // Notify Blazor about the file to load (3 separate string args)
                     if (dotNetRef) {
-                        dotNetRef.invokeMethodAsync('OnFileSelected', {
-                            path: fileNode.path,
-                            type: getFileTypeFromExt(fileNode.name),
-                            name: fileNode.name,
-                            hasHandle: true,
-                        });
+                        dotNetRef.invokeMethodAsync('OnFileSelected',
+                            fileNode.path,
+                            fileNode.name,
+                            getFileTypeFromExt(fileNode.name)
+                        );
                     }
                     // Highlight it in the nav tree
                     if (window.NavTreeInterop) {
@@ -374,9 +376,9 @@ window.AppInterop = (() => {
                 resetFolderBtn.style.display = 'inline-flex';
             }
 
-            // Notify Blazor
+            // Notify Blazor (no arguments — matches C# [JSInvokable] void OnFolderOpened())
             if (dotNetRef) {
-                dotNetRef.invokeMethodAsync('OnFolderOpened', true);
+                dotNetRef.invokeMethodAsync('OnFolderOpened');
             }
 
             return true;
@@ -426,6 +428,45 @@ window.AppInterop = (() => {
         return isOpenFolderMode;
     }
 
+    /**
+     * Prepare a file for rendering in Open Folder mode.
+     * Finds the file handle from the scanned tree and sets it on the appropriate renderer.
+     * @param {string} filePath - the file path in the tree
+     * @param {string} fileType - 'markdown', 'excel', or 'pdf'
+     * @returns {boolean} true if handle was found and set
+     */
+    function prepareFileHandle(filePath, fileType) {
+        if (!_lastScannedTree) return false;
+
+        const fileNode = findFileInTree(_lastScannedTree, filePath);
+        if (!fileNode || !fileNode.handle) return false;
+
+        switch (fileType) {
+            case 'markdown':
+                if (window.MarkdownInterop) {
+                    window.MarkdownInterop.setFileHandle(fileNode.handle);
+                }
+                break;
+            case 'excel':
+                if (window.ExcelInterop) {
+                    window.ExcelInterop.setFileHandle(fileNode.handle);
+                }
+                break;
+            case 'pdf':
+                if (window.PdfInterop) {
+                    window.PdfInterop.setFileHandle(fileNode.handle);
+                }
+                break;
+        }
+
+        // Also persist the last file path for restore
+        if (window.FileSystemInterop) {
+            window.FileSystemInterop.persistLastFilePath(filePath);
+        }
+
+        return true;
+    }
+
     return {
         initTheme,
         toggleTheme,
@@ -441,5 +482,6 @@ window.AppInterop = (() => {
         isInOpenFolderMode,
         getFileTypeFromExt,
         findFileInTree,
+        prepareFileHandle,
     };
 })();

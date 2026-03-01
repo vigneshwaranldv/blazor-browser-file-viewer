@@ -121,14 +121,13 @@ window.NavTreeInterop = (() => {
         element.classList.add('selected');
         selectedElement = element;
 
-        // Notify .NET callback
+        // Notify .NET callback (3 separate string args: path, name, fileType)
         if (_dotNetRef) {
-            _dotNetRef.invokeMethodAsync('OnFileSelected', {
-                path: element.dataset.filePath,
-                type: element.dataset.fileType,
-                name: element.dataset.fileName,
-                hasHandle: !!element._fileHandle,
-            });
+            _dotNetRef.invokeMethodAsync('OnFileSelected',
+                element.dataset.filePath,
+                element.dataset.fileName,
+                element.dataset.fileType
+            );
         }
     }
 
@@ -323,12 +322,11 @@ window.NavTreeInterop = (() => {
                 selectedElement = item;
 
                 if (_dotNetRef) {
-                    _dotNetRef.invokeMethodAsync('OnFileSelected', {
-                        path: filePath,
-                        type: fileType,
-                        name: file.name,
-                        hasHandle: true,
-                    });
+                    _dotNetRef.invokeMethodAsync('OnFileSelected',
+                        filePath,
+                        file.name,
+                        fileType
+                    );
                 }
             });
 
@@ -416,12 +414,11 @@ window.NavTreeInterop = (() => {
                 selectedElement = item;
 
                 if (_dotNetRef) {
-                    _dotNetRef.invokeMethodAsync('OnFileSelected', {
-                        path: node.path,
-                        type: fileType,
-                        name: node.name,
-                        hasHandle: !!node.handle,
-                    });
+                    _dotNetRef.invokeMethodAsync('OnFileSelected',
+                        node.path,
+                        node.name,
+                        fileType
+                    );
                 }
             });
 
